@@ -17,8 +17,9 @@ das_timer = pently_zp_state + 14
 
 ; Counting buttons (Down, B, A) that have been pressed together
 accum_keys: .res 2
-; Nonzero: Ignore counting buttons until none are pressed
-need_repress: .res 2
+
+winner: .res 1
+reserved1: .res 1
 
 .segment "INESHDR"
   .byte "NES",$1A
@@ -114,6 +115,7 @@ initroundloop:
   jsr reset_player_numbers
   jsr clear_stopwatch
   lda #$80      ; display interstitial
+  sta winner
   jsr show_help
 
   lda #0
@@ -122,21 +124,12 @@ initroundloop:
 
 gameloop:
   jsr read_pads
-  lda cur_num+1
-  cmp #100
-  bcs is_complete
-  lda cur_num+0
-  cmp #100
-  bcc not_complete
-  is_complete:
-    lda new_keys+0
-    and #KEY_START
-    beq no_player
-    jmp back_to_menu
-  not_complete:
+  lda winner
+  bpl no_player
 
   jsr inc_stopwatch
-  ldx #1
+  ldx num_players
+  dex
 playerloop:
   lda wrongtime,x
   beq not_in_wrongtime
@@ -189,16 +182,10 @@ have_player_number1:
   lda player_dirty_bit,x
   ora bg_dirty
   sta bg_dirty
-
-  ; did we reach 100 with this press? start something
-  lda cur_num,x
-  cmp #100
-  bcc no_inc1
-;  lda #SONG_WIN
-;  jsr pently_start_music
 no_inc1:
   dex
   bpl playerloop
+
 no_player:
   jsr bgprep
   lda nmis
@@ -212,7 +199,33 @@ no_player:
   clc
   jsr ppu_screen_on
   jsr pently_update
-  jmp gameloop
+
+  ; To crown a winner, the player's number must be at the limit
+  ; and the player's time must be expired
+  ldx winner
+  bpl in_win_wait
+  ldx num_players
+  dex
+  windetectloop:
+    lda wrongtime,x
+    bne not_winner
+    lda cur_num,x
+    cmp #100
+    bcc not_winner
+      stx winner
+      lda #SONG_WIN
+      jsr pently_start_music
+      jmp gameloop
+    not_winner:
+    dex
+    bpl windetectloop
+  jmp_gameloop:
+    jmp gameloop
+  in_win_wait:
+    lda new_keys+0
+    and #KEY_START
+    beq jmp_gameloop
+    jmp back_to_menu
 .endproc
 
 ;;

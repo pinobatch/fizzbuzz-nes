@@ -10,11 +10,11 @@
 .import periodTableLo, periodTableHi
 ;.import update_music, update_music_ch, music_playing
 .import psg_sound_table
-.export init_sound, start_sound, update_sound, soundBSS
+.export pently_init, pently_start_sound, pently_update, pentlyBSS
 
 ; as of the implementation of "attacks" in the instrument engine,
 ; this is a 36 byte buffer
-.importzp psg_sfx_state
+.importzp pently_zp_state
 
 SNDCHN = $4015
 
@@ -22,24 +22,24 @@ SNDCHN = $4015
 ; $4000 to $4004 if $4004 is idle and $4000 is not, or if $4004 has
 ; less sfx data left to play than $4000.  Turn this off to force all
 ; pulse sfx to be played on $4000.
-SQUARE_POOLING = 1
+PENTLY_USE_SQUARE_POOLING = 1
 
 ; As of 2011-03-10, a sound effect interrupts a musical instrument on
 ; the same channel only if the volume of the sfx is greater than that
 ; of the instrument.  Turn this off to force sound fx to interrupt
 ; the music whenever sfx data remains on that channel, even if the
 ; music is louder.
-KEEP_MUSIC_IF_LOUDER = 0
+PENTLY_USE_MUSIC_IF_LOUDER = 0
 
 .segment "BSS"
-soundBSS: .res 16  ; 80 if music also used
+pentlyBSS: .res 16  ; 80 if music also used
 
-psg_sfx_datalo = psg_sfx_state + 0
-psg_sfx_datahi = psg_sfx_state + 1
-psg_sfx_rate = soundBSS + 0
-psg_sfx_ratecd = soundBSS + 1
-psg_sfx_lastfreqhi = soundBSS + 2
-psg_sfx_remainlen = soundBSS + 3
+psg_sfx_datalo = pently_zp_state + 0
+psg_sfx_datahi = pently_zp_state + 1
+psg_sfx_rate = pentlyBSS + 0
+psg_sfx_ratecd = pentlyBSS + 1
+psg_sfx_lastfreqhi = pentlyBSS + 2
+psg_sfx_remainlen = pentlyBSS + 3
 
 .ifndef SOUND_NTSC_ONLY
 SOUND_NTSC_ONLY = 0
@@ -53,9 +53,9 @@ SOUND_NTSC_ONLY = 0
 ;;
 ; Initializes all sound channels.
 ; Call this at the start of a program or as a "panic button" before
-; entering a long stretch of code where you don't call update_sound.
+; entering a long stretch of code where you don't call pently_update.
 ;
-.proc init_sound
+.proc pently_init
   lda #$0F
   sta SNDCHN
   lda #$30
@@ -99,7 +99,7 @@ SOUND_NTSC_ONLY = 0
 ;
 ; @param A sound effect number (0-63)
 ;
-.proc start_sound
+.proc pently_start_sound
 snddatalo = 0
 snddatahi = 1
 sndchno = 2
@@ -127,7 +127,7 @@ sndrate = 4
   sta sndlen
 
   ; split up square wave sounds between $4000 and $4004
-  .if ::SQUARE_POOLING
+  .if ::PENTLY_USE_SQUARE_POOLING
     lda sndchno
     bne not_ch0to4  ; if not ch 0, don't try moving it
       lda psg_sfx_remainlen+4
@@ -160,7 +160,7 @@ ch_full:
 ;;
 ; Updates sound effect channels.
 ;
-.proc update_sound
+.proc pently_update
 ;  jsr update_music
   ldx #12
 loop:
@@ -215,7 +215,7 @@ ch_not_done:
   inc psg_sfx_datahi,x
 :
   ldy #0
-  .if ::KEEP_MUSIC_IF_LOUDER
+  .if ::PENTLY_USE_MUSIC_IF_LOUDER
     lda 2
     and #$0F
     sta 4

@@ -9,11 +9,11 @@ tvSystem: .res 1
 round_num: .res 1
 ; length 16 and overlap keys with music vars when no music is used
 ; length 36 and no overlaps when music is used
-psg_sfx_state: .res 16
-cur_keys = psg_sfx_state + 2
-new_keys = psg_sfx_state + 6
-das_keys = psg_sfx_state + 10
-das_timer = psg_sfx_state + 14
+pently_zp_state: .res 16
+cur_keys = pently_zp_state + 2
+new_keys = pently_zp_state + 6
+das_keys = pently_zp_state + 10
+das_timer = pently_zp_state + 14
 
 ; Counting buttons (Down, B, A) that have been pressed together
 accum_keys: .res 2
@@ -52,7 +52,7 @@ need_repress: .res 2
 :
   bit PPUSTATUS
   bpl :-
-  jsr init_sound
+  jsr pently_init
 
   ; wait #2 for ppu to warm up
 :
@@ -81,18 +81,19 @@ need_repress: .res 2
   cpy #16
   bcc :-
 
-:
+back_to_menu:
   jsr title_screen
   cmp #2
   bne notHelp
-  lda #$00      ; help pages
-  jsr show_help
-  jmp :-
-notHelp:
+    lda #$00      ; help pages
+    jsr show_help
+    jmp back_to_menu
+  notHelp:
   adc #1
   sta num_players
   lda #0
   sta round_num
+
 play_round:
   lda round_num
   asl a
@@ -121,14 +122,22 @@ initroundloop:
 
 gameloop:
   jsr read_pads
-  jsr inc_stopwatch
+  lda cur_num+1
+  cmp #100
+  bcs is_complete
+  lda cur_num+0
+  cmp #100
+  bcc not_complete
+  is_complete:
+    lda new_keys+0
+    and #KEY_START
+    beq no_player
+    jmp back_to_menu
+  not_complete:
 
+  jsr inc_stopwatch
   ldx #1
 playerloop:
-  lda cur_num,x
-  cmp #100
-  bcs no_inc1
-  
   lda wrongtime,x
   beq not_in_wrongtime
   lda time_subtenths
@@ -166,7 +175,7 @@ cur_turn = 5
 
 is_correct:
   stx cur_turn
-  jsr start_sound
+  jsr pently_start_sound
   ldx cur_turn
 
   lda expected_press,x
@@ -180,10 +189,17 @@ have_player_number1:
   lda player_dirty_bit,x
   ora bg_dirty
   sta bg_dirty
+
+  ; did we reach 100 with this press? start something
+  lda cur_num,x
+  cmp #100
+  bcc no_inc1
+;  lda #SONG_WIN
+;  jsr pently_start_music
 no_inc1:
   dex
   bpl playerloop
-
+no_player:
   jsr bgprep
   lda nmis
 :
@@ -195,7 +211,7 @@ no_inc1:
   lda #VBLANK_NMI|BG_0000|OBJ_1000
   clc
   jsr ppu_screen_on
-  jsr update_sound
+  jsr pently_update
   jmp gameloop
 .endproc
 

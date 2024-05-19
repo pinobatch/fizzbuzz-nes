@@ -72,8 +72,8 @@ buzzvalue = fbtype+3
 .global inc_cur_num, div1bya, div1by2
 
 ; sound.s
-.globalzp psg_sfx_state
-.global init_sound, start_sound, update_sound
+.globalzp pently_zp_state
+.global pently_init, pently_start_sound, pently_update
 
 ; musicseq.s
 SFX_COUNT = 0

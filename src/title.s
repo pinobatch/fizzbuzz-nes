@@ -130,7 +130,7 @@ loop:
   sec
   jsr ppu_screen_on
   jsr read_pads
-  jsr update_sound
+  jsr pently_update
 
   ; process input once fully scrolled on
   lda pageprogress
@@ -147,7 +147,7 @@ loop:
   sta pagenum
 upFinish:
   lda #SFX_COUNT
-  jsr start_sound
+  jsr pently_start_sound
 notUp:
 
   lda new_keys
@@ -161,7 +161,7 @@ notUp:
 downHaveY:
   sty pagenum
   lda #SFX_COUNT
-  jsr start_sound
+  jsr pently_start_sound
 notDown:
 
   jmp loop

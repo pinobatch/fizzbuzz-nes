@@ -23,7 +23,7 @@ xscroll_hi = $0B
 
   sta pagenum
   lda #SFX_FIZZBUZZ
-  jsr start_sound
+  jsr pently_start_sound
   ldx #$FF
   stx bgup_progress  ; make sure bgprep has nothing to do
   inx
@@ -209,7 +209,7 @@ help_vram_done:
   clc
   jsr ppu_screen_on
   jsr read_pads
-  jsr update_sound
+  jsr pently_update
 
   ; Don't allow changing pages while moving
   lda pageprogress
@@ -231,7 +231,7 @@ help_vram_done:
   sta pageprogress
   sta pagemovedir
   lda #SFX_COUNT
-  jsr start_sound
+  jsr pently_start_sound
   jmp notRight
 lastRight:
   lda new_keys
@@ -252,7 +252,7 @@ setQuit_have_pagenum:
   sty pageprogress
   sty pagemovedir
   lda #SFX_FIZZBUZZ
-  jsr start_sound
+  jsr pently_start_sound
 notRight:
 
   lda pagenum  ; Left doesn't work on interstitial pages
@@ -268,7 +268,7 @@ notRight:
   dey
   sty pagemovedir
   lda #SFX_COUNT
-  jsr start_sound
+  jsr pently_start_sound
 notLeft:
 
   ; If the scrolling animation has finished, and the page number
